@@ -13,8 +13,6 @@ def veri_cek():
     return df
 
 df = veri_cek()
-
-# Sadece Gelir ve Gider satırlarını filtrele
 df = df[df['Tür'].isin(['Gelir', 'Gider'])]
 
 toplam_gelir = df[df['Tür'] == 'Gelir']['Tutar'].sum()
@@ -25,8 +23,10 @@ col1.metric("Toplam Gelir", f"{toplam_gelir:,.2f} TL")
 col2.metric("Toplam Gider", f"{toplam_gider:,.2f} TL")
 col3.metric("Net Bakiye", f"{toplam_gelir - toplam_gider:,.2f} TL")
 
+# GRAFİK KISMI DÜZELTİLDİ:
 st.subheader("📊 Harcama Dağılımı")
-st.bar_chart(df.groupby(["Tür", "Kategori"])["Tutar"].sum())
+chart_data = df.groupby(["Tür", "Kategori"])["Tutar"].sum().reset_index()
+st.bar_chart(chart_data, x="Kategori", y="Tutar", color="Tür")
 
 st.subheader("📋 Detaylı Kayıtlar")
 st.dataframe(df)
