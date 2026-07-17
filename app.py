@@ -1,53 +1,36 @@
-import pandas as pd
 import streamlit as st
-import os
-from datetime import datetime
+import pandas as pd
 
-# Dosya yolu
-FILE_NAME = "butce_takip.xlsx"
+st.set_page_config(page_title="Sado Başkan Harcama Takip", page_icon="💰")
+st.title("💰 Sado Başkan Harcama Takip")
 
-# Dosya yoksa oluştur
-if not os.path.exists(FILE_NAME):
-    df = pd.DataFrame(columns=["Tarih", "Tutar", "Kategori", "Açıklama"])
-    df.to_excel(FILE_NAME, index=False)
+# Google Sheets'ten yayınladığınız CSV linkini buraya yapıştırın
+SHEET_URL = "BURAYA_CSV_LINKINIZI_YAPISTIRIN"
 
-def main():
-    st.set_page_config(page_title="Reis'in Bütçe Takibi", page_icon="💰")
-    st.title("💰 Reisim Bütçe Takip")
+@st.cache_data(ttl=60)
+def veri_cek():
+    return pd.read_csv(SHEET_URL)
 
-    # Giriş Formu
-    with st.form("harcama_formu", clear_on_submit=True):
-        tutar = st.number_input("Tutar (TL)", min_value=0.0, step=1.0)
-        kategori = st.selectbox("Kategori", ["Gıda", "Sağlık", "Yakıt", "Eğlence", "Fatura", "Diğer"])
-        aciklama = st.text_input("Açıklama")
-        submit = st.form_submit_button("Kaydet")
-
-        if submit:
-            yeni_veri = pd.DataFrame({
-                "Tarih": [datetime.now().strftime("%Y-%m-%d %H:%M")],
-                "Tutar": [tutar],
-                "Kategori": [kategori],
-                "Açıklama": [aciklama]
-            })
-            
-            df = pd.read_excel(FILE_NAME)
-            df = pd.concat([df, yeni_veri], ignore_index=True)
-            df.to_excel(FILE_NAME, index=False)
-            st.success("Reisim, harcamanız kaydedildi!")
-
-    # Raporlama
-    st.subheader("📊 Harcama Raporu")
-    df = pd.read_excel(FILE_NAME)
+try:
+    df = veri_cek()
     
-    if not df.empty:
-        st.dataframe(df.sort_values(by="Tarih", ascending=False))
-        
-        # Grafik
-        st.write("### Kategori Bazlı Dağılım")
-        chart_data = df.groupby("Kategori")["Tutar"].sum()
-        st.bar_chart(chart_data)
-    else:
-        st.info("Henüz harcama girişi yok reisim.")
+    # Sütun isimlerinizin Google Form'daki ile aynı olduğundan emin olun (Tutar, Tür, Kategori)
+    # Metrikleri hesaplayalım
+    toplam_gelir = df[df['Tür'] == 'Gelir']['Tutar'].sum()
+    toplam_gider = df[df['Tür'] == 'Gider']['Tutar'].sum()
+    net_bakiye = toplam_gelir - toplam_gider
 
-if __name__ == "__main__":
-    main()
+    # Dashboard
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Toplam Gelir", f"{toplam_gelir:,.2f} TL")
+    col2.metric("Toplam Gider", f"{toplam_gider:,.2f} TL")
+    col3.metric("Net Bakiye", f"{net_bakiye:,.2f} TL")
+
+    st.subheader("📊 Sado Başkan Harcama Takip Özeti")
+    st.bar_chart(df.groupby(["Tür", "Kategori"])["Tutar"].sum())
+    
+    with st.expander("Tüm Kayıtları Gör"):
+        st.dataframe(df)
+
+except Exception as e:
+    st.info("Reisim, henüz veri girişi yok veya bağlantı bekleniyor.")
