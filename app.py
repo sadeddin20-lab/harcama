@@ -8,19 +8,29 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR7W0zpkVGhVfGTzarF
 
 @st.cache_data(ttl=5)
 def veri_cek():
-    return pd.read_csv(SHEET_URL)
+    df = pd.read_csv(SHEET_URL)
+    # Sütun isimlerindeki boşlukları temizleyelim reisim
+    df.columns = df.columns.str.strip()
+    return df
 
 try:
     df = veri_cek()
-    # Tablodaki sütun isimlerini ekrana yazdıralım ki hata yapmayalım
-    st.write("Tablo Başlıkları:", df.columns.tolist())
     
-    # Eğer "Tutar" sütununu bulamıyorsa, buraya gelen listedeki isme göre düzeltiriz
+    # Artık boşluksuz halleriyle (Tutar, Tür, Kategori, Açıklama) çalışabiliriz
     toplam_gelir = df[df['Tür'] == 'Gelir']['Tutar'].sum()
     toplam_gider = df[df['Tür'] == 'Gider']['Tutar'].sum()
+    net_bakiye = toplam_gelir - toplam_gider
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Toplam Gelir", f"{toplam_gelir:,.2f} TL")
+    col2.metric("Toplam Gider", f"{toplam_gider:,.2f} TL")
+    col3.metric("Net Bakiye", f"{net_bakiye:,.2f} TL")
+
+    st.subheader("📊 Harcama Dağılımı")
+    st.bar_chart(df.groupby(["Tür", "Kategori"])["Tutar"].sum())
     
-    st.metric("Net Bakiye", f"{toplam_gelir - toplam_gider:,.2f} TL")
+    st.subheader("📋 Detaylı Kayıtlar")
     st.dataframe(df)
 
 except Exception as e:
-    st.error(f"Reisim, hata şurada: {e}")
+    st.error(f"Reisim, sistem çalışmaya hazır, ilk verinizi girin! Hata detayı: {e}")
