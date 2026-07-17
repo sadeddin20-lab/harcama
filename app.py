@@ -9,29 +9,24 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR7W0zpkVGhVfGTzarF
 @st.cache_data(ttl=5)
 def veri_cek():
     df = pd.read_csv(SHEET_URL)
-    df.columns = df.columns.str.strip() # Boşlukları temizle
+    df.columns = df.columns.str.strip()
     return df
 
-try:
-    df = veri_cek()
-    
-    # Sütunları dinamik olarak belirleyelim
-    # 'Tür' ve 'Tutar' başlıkları kesin olduğu için onları kullanalım
-    df = df[df['Tür'].isin(['Gelir', 'Gider'])]
-    
-    toplam_gelir = df[df['Tür'] == 'Gelir']['Tutar'].sum()
-    toplam_gider = df[df['Tür'] == 'Gider']['Tutar'].sum()
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Toplam Gelir", f"{toplam_gelir:,.2f} TL")
-    col2.metric("Toplam Gider", f"{toplam_gider:,.2f} TL")
-    col3.metric("Net Bakiye", f"{toplam_gelir - toplam_gider:,.2f} TL")
+df = veri_cek()
 
-    st.subheader("📊 Harcama Dağılımı")
-    st.bar_chart(df.groupby(["Tür", "Kategori"])["Tutar"].sum())
-    
-    st.subheader("📋 Detaylı Kayıtlar")
-    st.dataframe(df)
+# Sadece Gelir ve Gider satırlarını filtrele
+df = df[df['Tür'].isin(['Gelir', 'Gider'])]
 
-except Exception as e:
-    st.warning("Reisim, sistem veriyi bekliyor. Lütfen formunuzdan bir 'Gelir' veya 'Gider' kaydı girin!")
+toplam_gelir = df[df['Tür'] == 'Gelir']['Tutar'].sum()
+toplam_gider = df[df['Tür'] == 'Gider']['Tutar'].sum()
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Toplam Gelir", f"{toplam_gelir:,.2f} TL")
+col2.metric("Toplam Gider", f"{toplam_gider:,.2f} TL")
+col3.metric("Net Bakiye", f"{toplam_gelir - toplam_gider:,.2f} TL")
+
+st.subheader("📊 Harcama Dağılımı")
+st.bar_chart(df.groupby(["Tür", "Kategori"])["Tutar"].sum())
+
+st.subheader("📋 Detaylı Kayıtlar")
+st.dataframe(df)
